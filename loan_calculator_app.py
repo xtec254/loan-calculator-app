@@ -63,7 +63,7 @@ loan_products = {
     "1": {
         "name": "Fanaka Loan", "interest_rate": 24, "type": "flat",
         "insurance_rate": 3, "processing_rate": 19, "processing_min": 600,
-        "amount_range": (100000, 5000000), "month_range": (1,144)
+        "amount_range": (10000, 5000000), "month_range": (1,144)
     },
     "2": {
         "name": "Payslip Loan", "interest_rate": 120, "type": "reducing",
