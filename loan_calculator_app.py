@@ -172,12 +172,12 @@ def calculate():
             "name": product["name"],
             "type": product["type"],
             "rate": product["interest_rate"],
-            "principal": principal,
-            "interest": interest,
-            "insurance": insurance,
-            "processing": processing,
-            "repayment": repayment,
-            "total": total
+            "principal": round(principal),
+            "interest": round(interest),
+            "insurance": round(insurance),
+            "processing": round(processing),
+            "repayment": round(repayment),
+            "total": round(total)
         })
 
     if results:
@@ -187,17 +187,17 @@ def calculate():
         for r in results:
             output.insert(tk.END, f"\n[{r['name']}] ({r['type'].capitalize()} Rate)\n")
             output.insert(tk.END, f"Interest Rate       : {r['rate']}%\n")
-            output.insert(tk.END, f"Estimated Principal : KES {r['principal']}\n")
-            output.insert(tk.END, f"Interest            : KES {r['interest']}\n")
-            output.insert(tk.END, f"Insurance           : KES {r['insurance']}\n")
-            output.insert(tk.END, f"Processing Fee      : KES {r['processing']}\n")
-            output.insert(tk.END, f"Monthly Repayment   : KES {r['repayment']}\n")
-            output.insert(tk.END, f"Total Loan Cost     : KES {r['total']}\n")
+            output.insert(tk.END, f"Estimated Principal : KES {r['principal']:,}\n")
+            output.insert(tk.END, f"Interest            : KES {r['interest']:,}\n")
+            output.insert(tk.END, f"Insurance           : KES {r['insurance']:,}\n")
+            output.insert(tk.END, f"Processing Fee      : KES {r['processing']:,}\n")
+            output.insert(tk.END, f"Monthly Repayment   : KES {r['repayment']:,}\n")
+            output.insert(tk.END, f"Total Loan Cost     : KES {r['total']:,}\n")
             names.append(r['name'])
             totals.append(r['total'])
 
         best = results[0]
-        output.insert(tk.END, f"\n✅ Recommended Product:\n> {best['name']} ({best['type'].capitalize()} Rate) with total cost of KES {best['total']}\n")
+        output.insert(tk.END, f"\n✅ Recommended Product:\n> {best['name']} ({best['type'].capitalize()} Rate) with total cost of KES {best['total']:,}\n")
 
         fig, ax = plt.subplots(figsize=(5,4))
         ax.bar(names, totals, color='skyblue')
