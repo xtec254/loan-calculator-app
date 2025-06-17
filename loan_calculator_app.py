@@ -104,7 +104,7 @@ months_label.grid(row=1, column=0, sticky="w")
 months_entry = ttk.Entry(frame)
 months_entry.grid(row=1, column=1, sticky="ew")
 
-output_label = ttk.Label(frame, text="Eligible Loan Products:")
+output_label = ttk.Label(frame, text="Available Loan Products:")
 output_label.grid(row=2, column=0, columnspan=2, sticky="w", pady=(10,0))
 
 output = tk.Text(frame, height=30, width=100)
@@ -162,17 +162,17 @@ def calculate():
 
     if results:
         for idx, res in enumerate(results, start=1):
-            output.insert(tk.END, f"\n✅ Option {idx}: {res['name']}\n")
+            output.insert(tk.END, f"\n💡 Option {idx}: {res['name']}\n")
             output.insert(tk.END, f"Principal: KES {res['principal']}, Total Repayment: KES {res['total']}, Rate: {res['rate']}%\n")
             output.insert(tk.END, f"{'Month':<6} {'Interest':<10} {'Principal':<10} {'Processing':<10} {'Insurance':<10} {'Payment':<10} {'Balance':<10}\n")
             for row in res["table"]:
                 output.insert(tk.END, f"{row['Month']:<6} {row['Interest']:<10} {row['Principal']:<10} {row['Processing']:<10} {row['Insurance']:<10} {row['Payment']:<10} {row['Balance']:<10}\n")
 
             # Create visual chart for this option
-            months = [row["Month"] for row in res["table"]]
+            months_list = [row["Month"] for row in res["table"]]
             payments = [row["Payment"] for row in res["table"]]
             fig, ax = plt.subplots(figsize=(6, 3))
-            ax.plot(months, payments, marker='o')
+            ax.plot(months_list, payments, marker='o')
             ax.set_title(f"{res['name']} - Monthly Repayments")
             ax.set_xlabel("Month")
             ax.set_ylabel("KES")
