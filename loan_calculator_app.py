@@ -5,7 +5,7 @@ from tkinter import messagebox
 root = tk.Tk()
 root.title("Loan Calculator")
 tk.Label(root, text="Welcome to the calculator ").pack()
-root.mainloop()
+
 
 
 # --- Loan Calculator App ---           
@@ -168,3 +168,4 @@ if best['type'] == "reducing":
     for row in amort_table:
         print(f"{row['Month']:<6} {row['Interest']:<10} {row['Principal']:<10} {row['Processing']:<10} {row['Insurance']:<10} {row['Payment']:<10} {row['Balance']:<10}")
 
+root.mainloop()
