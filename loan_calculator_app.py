@@ -1,6 +1,12 @@
 import math
-import streamlit as st
-import pandas as pd
+import tkinter as tk
+
+root = tk.Tk()
+root.title("Loan Calculator")
+tk.Label(root, text="Welcome to the calculator ").pack()
+root.mainloop()
+
+# --- Loan Calculator App ---           
 
 
 # --- Calculation functions ---
