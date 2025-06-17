@@ -1,68 +1,60 @@
 import math
 import tkinter as tk
 
-# --- Calculation functions (unchanged) ---
 
-def calc_reducing_principal(monthly_payment, annual_rate, months):
-    r = (annual_rate / 100) / 12
-    if r == 0:
-        principal = monthly_payment * months
-    else:
-        principal = monthly_payment * (1 - (1 + r) ** -months) / r
-    return math.ceil(principal)
+def estimate_principal_from_repayment(repayment, annual_rate, months, insurance_rate, processing_rate):
+    low = 100
+    high = 1_000_000
+    for _ in range(100):
+        mid = (low + high) / 2
+        principal_payment = mid / months
+        monthly_processing = (mid * (processing_rate / 100)) / months
+        annual_insurance = mid * (insurance_rate / 100)
+        monthly_insurance = (annual_insurance * (months / 12)) / months
+        balance = mid
+        total = 0
+        for _ in range(months):
+            interest = (balance * (annual_rate / 100)) / 12
+            total_monthly = principal_payment + interest + monthly_processing + monthly_insurance
+            total += total_monthly
+            balance -= principal_payment
+        avg_monthly = total / months
+        if avg_monthly > repayment:
+            high = mid
+        else:
+            low = mid
+    return round((low + high) / 2)
 
-def calc_flat_principal(monthly_payment, annual_rate, months):
-    t = months / 12
-    r = annual_rate / 100
-    principal = (monthly_payment * months) / (1 + r * t)
-    return math.ceil(principal)
 
-def calc_total_interest(principal, annual_rate, months, method):
-    r = annual_rate / 100
-    t = months / 12
+def generate_amortization_table(principal, annual_rate, months, insurance_rate, processing_rate):
+    principal_payment = round(principal / months)
+    processing_fee_total = principal * (processing_rate / 100)
+    monthly_processing = math.ceil(processing_fee_total / months)
+    insurance_total = principal * (insurance_rate / 100) * (months / 12)
+    monthly_insurance = math.ceil(insurance_total / months)
 
-    if method == "flat":
-        return math.ceil(principal * r * t)
-    elif method == "reducing":
-        monthly_r = r / 12
-        total_payment = principal * monthly_r * (1 + (1 + monthly_r) ** months) / ((1 + monthly_r) ** months - 1) * months
-        return math.ceil(total_payment - principal)
-    return 0
+    rounded_proc_total = monthly_processing * months
+    rounded_ins_total = monthly_insurance * months
+    padding = (rounded_proc_total + rounded_ins_total) - (processing_fee_total + insurance_total)
+    adjusted_principal = principal - padding
 
-def calc_insurance(principal, months, insurance_rate):
-    return math.ceil(principal * (insurance_rate / 100) * (months / 12))
-
-def calc_processing(principal, processing_rate, processing_min):
-    return math.ceil(max(principal * (processing_rate / 100), processing_min))
-
-def generate_amortization_table(principal, annual_rate, months, repayment):
-    r = (annual_rate / 100) / 12
-    monthly_payment = math.ceil(principal * r * (1 + r) ** months / ((1 + r) ** months - 1))
-
-    balance = principal
     table = []
-
+    balance = adjusted_principal
     for i in range(1, months + 1):
-        interest = round(balance * r)
-        principal_payment = round(principal / months)
-        processing_fee = math.ceil((calc_processing(principal, 3, 600))/months)
-        insurance_fee = round((calc_insurance(principal, months, 3))/months)
-        monthly_payment = repayment
-        balance = max(0, round(balance - principal_payment))
-
-        table.append({
+        interest = round(balance * (annual_rate / 100 / 12))
+        row = {
             "Month": i,
             "Interest": interest,
             "Principal": principal_payment,
-            "Processing": processing_fee,
-            "Insurance": insurance_fee,
-            "Payment": monthly_payment,
-            "Balance": balance
-        })
-
+            "Processing": monthly_processing,
+            "Insurance": monthly_insurance,
+            "Payment": principal_payment + interest + monthly_processing + monthly_insurance,
+            "Balance": max(0, round(balance - principal_payment))
+        }
+        table.append(row)
+        balance -= principal_payment
     return table
 
-# --- Loan Products (unchanged) ---
 
 loan_products = {
     "1": {
@@ -92,25 +84,19 @@ loan_products = {
     }
 }
 
-# --- Tkinter UI ---
 
 root = tk.Tk()
 root.title("Loan Calculator")
 
-tk.Label(root, text="Welcome to the calculator").pack()
+tk.Label(root, text="Target monthly repayment (KES):").pack()
+repayment_entry = tk.Entry(root)
+repayment_entry.pack()
 
-frame = tk.Frame(root)
-frame.pack(pady=10)
+tk.Label(root, text="Loan period (months):").pack()
+months_entry = tk.Entry(root)
+months_entry.pack()
 
-tk.Label(frame, text="Target monthly repayment (KES):").grid(row=0, column=0, sticky="e")
-repayment_entry = tk.Entry(frame)
-repayment_entry.grid(row=0, column=1)
-
-tk.Label(frame, text="Loan period (months):").grid(row=1, column=0, sticky="e")
-months_entry = tk.Entry(frame)
-months_entry.grid(row=1, column=1)
-
-output = tk.Text(root, height=20, width=80)
+output = tk.Text(root, height=30, width=100)
 output.pack(pady=10)
 
 def calculate():
@@ -119,60 +105,47 @@ def calculate():
         repayment = float(repayment_entry.get())
         months = int(months_entry.get())
     except ValueError:
-        output.insert(tk.END, "Please enter valid numbers.\n")
+        output.insert(tk.END, "⚠️ Enter valid numbers.\n")
         return
 
     results = []
     for product in loan_products.values():
         if months < product["month_range"][0] or months > product["month_range"][1]:
             continue
-
-        if product["type"] == "reducing":
-            principal = calc_reducing_principal(repayment, product["interest_rate"], months)
-        else:
-            principal = calc_flat_principal(repayment, product["interest_rate"], months)
-
-        if principal < product["amount_range"][0] or principal > product["amount_range"][1]:
+        if product["type"] != "reducing":
             continue
 
-        insurance = calc_insurance(principal, months, product["insurance_rate"])
-        processing  = calc_processing(principal, product["processing_rate"], product["processing_min"])
-        interest = calc_total_interest(principal, product["interest_rate"], months, product["type"])
-        total = principal + insurance + processing + interest
+        principal = estimate_principal_from_repayment(
+            repayment, product["interest_rate"], months,
+            product["insurance_rate"], product["processing_rate"]
+        )
 
+        if not (product["amount_range"][0] <= principal <= product["amount_range"][1]):
+            continue
+
+        table = generate_amortization_table(
+            principal, product["interest_rate"], months,
+            product["insurance_rate"], product["processing_rate"]
+        )
+
+        total_cost = sum(row["Payment"] for row in table)
         results.append({
             "name": product["name"],
-            "type": product["type"],
-            "rate": product["interest_rate"],
             "principal": principal,
-            "interest": interest,
-            "insurance": insurance,
-            "processing": processing,
-            "total": total
+            "total": total_cost,
+            "table": table,
+            "rate": product["interest_rate"]
         })
 
     if results:
-        for r in results:
-            output.insert(tk.END, f"\n[{r['name']}] ({r['type'].capitalize()} Rate)\n")
-            output.insert(tk.END, f"Interest Rate       : {r['rate']}%\n")
-            output.insert(tk.END, f"Estimated Principal : KES {r['principal']}\n")
-            output.insert(tk.END, f"Interest            : KES {r['interest']}\n")
-            output.insert(tk.END, f"Insurance ({loan_products['1']['insurance_rate']}%) : KES {r['insurance']}\n")
-            output.insert(tk.END, f"Processing Fee      : KES {r['processing']}\n")
-            output.insert(tk.END, f"Total Loan Cost     : KES {r['total']}\n")
-
-        best = min(results, key=lambda x: x['total'])
-        output.insert(tk.END, f"\n✅ Recommended Product:\n> {best['name']} ({best['type'].capitalize()} Rate) with total cost of KES {best['total']}\n")
-
-        if best['type'] == "reducing":
-            output.insert(tk.END, "\n📊 Amortization Schedule:\n")
-            amort_table = generate_amortization_table(best['principal'], best['rate'], months, repayment)
+        for res in results:
+            output.insert(tk.END, f"\n✅ Option: {res['name']}\n")
+            output.insert(tk.END, f"Principal: KES {res['principal']}, Total Repayment: KES {res['total']}, Rate: {res['rate']}%\n")
             output.insert(tk.END, f"{'Month':<6} {'Interest':<10} {'Principal':<10} {'Processing':<10} {'Insurance':<10} {'Payment':<10} {'Balance':<10}\n")
-            for row in amort_table:
+            for row in res["table"]:
                 output.insert(tk.END, f"{row['Month']:<6} {row['Interest']:<10} {row['Principal']:<10} {row['Processing']:<10} {row['Insurance']:<10} {row['Payment']:<10} {row['Balance']:<10}\n")
     else:
-        output.insert(tk.END, "\n⚠️ No products matched your loan period or repayment capacity. Try adjusting inputs.\n")
+        output.insert(tk.END, "⚠️ No matching product found.")
 
 tk.Button(root, text="Calculate", command=calculate).pack(pady=5)
-
 root.mainloop()
