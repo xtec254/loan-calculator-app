@@ -1,5 +1,6 @@
 import math
 import tkinter as tk
+from tkinter import ttk
 
 
 def estimate_principal_from_repayment(repayment, annual_rate, months, insurance_rate, processing_rate):
@@ -57,47 +58,51 @@ def generate_amortization_table(principal, annual_rate, months, insurance_rate, 
 
 
 loan_products = {
-    "1": {
-        "name": "Fanaka Loan", "interest_rate": 24, "type": "flat",
-        "insurance_rate": 3, "processing_rate": 19, "processing_min": 600,
-        "amount_range": (100000, 5000000), "month_range": (1,144)
-    },
-    "2": {
-        "name": "Payslip Loan", "interest_rate": 120, "type": "reducing",
-        "insurance_rate": 3, "processing_rate": 3, "processing_min": 600,
-        "amount_range": (500, 500000), "month_range": (1, 144)
-    },
-    "3": {
-        "name": "Msingi Loan 1", "interest_rate": 36, "type": "flat",
-        "insurance_rate": 3, "processing_rate": 3, "processing_min": 600,
-        "amount_range": (500, 300000), "month_range": (1, 6)
-    },
-    "4": {
-        "name": "Msingi Loan 2", "interest_rate": 42, "type": "flat",
-        "insurance_rate": 3, "processing_rate": 3, "processing_min": 600,
-        "amount_range": (500, 300000), "month_range": (6, 12)
-    },
-    "5": {
-        "name": "Bosika Mini", "interest_rate": 48, "type": "flat",
-        "insurance_rate": 3, "processing_rate": 3, "processing_min": 600,
-        "amount_range": (50000, 99999), "month_range": (1, 6)
-    }
+    "1": {"name": "Fanaka Loan", "interest_rate": 24, "type": "flat", "insurance_rate": 3, "processing_rate": 19,
+          "processing_min": 600, "amount_range": (100000, 5000000), "month_range": (1, 144)},
+    "2": {"name": "Payslip Loan", "interest_rate": 120, "type": "reducing", "insurance_rate": 3, "processing_rate": 3,
+          "processing_min": 600, "amount_range": (500, 500000), "month_range": (1, 144)},
+    "3": {"name": "Msingi Loan 1", "interest_rate": 36, "type": "flat", "insurance_rate": 3, "processing_rate": 3,
+          "processing_min": 600, "amount_range": (500, 300000), "month_range": (1, 6)},
+    "4": {"name": "Msingi Loan 2", "interest_rate": 42, "type": "flat", "insurance_rate": 3, "processing_rate": 3,
+          "processing_min": 600, "amount_range": (500, 300000), "month_range": (6, 12)},
+    "5": {"name": "Bosika Mini", "interest_rate": 48, "type": "flat", "insurance_rate": 3, "processing_rate": 3,
+          "processing_min": 600, "amount_range": (50000, 99999), "month_range": (1, 6)}
 }
 
 
+# GUI setup
 root = tk.Tk()
-root.title("Loan Calculator")
+root.title("💸 Modern Loan Calculator")
+root.geometry("1000x700")
+style = ttk.Style(root)
+style.theme_use("clam")
 
-tk.Label(root, text="Target monthly repayment (KES):").pack()
-repayment_entry = tk.Entry(root)
-repayment_entry.pack()
+frame = ttk.Frame(root, padding="20")
+frame.pack(fill="both", expand=True)
 
-tk.Label(root, text="Loan period (months):").pack()
-months_entry = tk.Entry(root)
-months_entry.pack()
+ttk.Label(frame, text="🎯 Target Monthly Repayment (KES):").grid(column=0, row=0, sticky="w")
+repayment_entry = ttk.Entry(frame)
+repayment_entry.grid(column=1, row=0, sticky="ew", padx=10)
 
-output = tk.Text(root, height=30, width=100)
-output.pack(pady=10)
+ttk.Label(frame, text="📆 Loan Period (months):").grid(column=0, row=1, sticky="w")
+months_entry = ttk.Entry(frame)
+months_entry.grid(column=1, row=1, sticky="ew", padx=10)
+
+frame.columnconfigure(1, weight=1)
+
+output_frame = ttk.LabelFrame(frame, text="Results", padding="10")
+output_frame.grid(row=3, column=0, columnspan=2, sticky="nsew", pady=20)
+output_frame.columnconfigure(0, weight=1)
+frame.rowconfigure(3, weight=1)
+
+output = tk.Text(output_frame, wrap="none", height=25)
+output.grid(row=0, column=0, sticky="nsew")
+
+scroll_y = ttk.Scrollbar(output_frame, orient="vertical", command=output.yview)
+scroll_y.grid(row=0, column=1, sticky="ns")
+output['yscrollcommand'] = scroll_y.set
+
 
 def calculate():
     output.delete(1.0, tk.END)
@@ -105,7 +110,7 @@ def calculate():
         repayment = float(repayment_entry.get())
         months = int(months_entry.get())
     except ValueError:
-        output.insert(tk.END, "⚠️ Enter valid numbers.\n")
+        output.insert(tk.END, "⚠️ Please enter valid numbers.\n")
         return
 
     results = []
@@ -145,7 +150,9 @@ def calculate():
             for row in res["table"]:
                 output.insert(tk.END, f"{row['Month']:<6} {row['Interest']:<10} {row['Principal']:<10} {row['Processing']:<10} {row['Insurance']:<10} {row['Payment']:<10} {row['Balance']:<10}\n")
     else:
-        output.insert(tk.END, "⚠️ No matching product found.")
+        output.insert(tk.END, "⚠️ No matching product found for your repayment and period.")
 
-tk.Button(root, text="Calculate", command=calculate).pack(pady=5)
+
+ttk.Button(frame, text="🧮 Calculate", command=calculate).grid(column=0, row=2, columnspan=2, pady=10)
+
 root.mainloop()
