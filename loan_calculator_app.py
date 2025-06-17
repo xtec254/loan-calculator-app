@@ -14,12 +14,24 @@ def calc_flat_payment(principal, annual_rate, months):
     total_amount = principal + total_interest
     return math.ceil(total_amount / months)
 
+def calc_flat_principal(monthly_payment, annual_rate, months):
+    r = annual_rate / 100
+    t = months / 12
+    return math.floor(monthly_payment * months / (1 + r * t))
+
 def calc_reducing_payment(principal, annual_rate, months):
     r = (annual_rate / 100) / 12
     if r == 0:
         return principal / months
     payment = principal * r * ((1 + r) ** months) / (((1 + r) ** months) - 1)
     return math.ceil(payment)
+
+def calc_reducing_principal(monthly_payment, annual_rate, months):
+    r = (annual_rate / 100) / 12
+    if r == 0:
+        return monthly_payment * months
+    principal = monthly_payment * (((1 + r) ** months - 1) / (r * (1 + r) ** months))
+    return math.floor(principal)
 
 def calc_total_interest(principal, annual_rate, months, method):
     r = annual_rate / 100
