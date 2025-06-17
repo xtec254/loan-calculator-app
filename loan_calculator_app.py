@@ -63,7 +63,7 @@ loan_products = {
     "1": {
         "name": "Fanaka Loan", "interest_rate": 24, "type": "flat",
         "insurance_rate": 3, "processing_rate": 19, "processing_min": 600,
-        "amount_range": (10000, 5000000), "month_range": (1,144)
+        "amount_range": (100000, 5000000), "month_range": (1,144)
     },
     "2": {
         "name": "Payslip Loan", "interest_rate": 120, "type": "reducing",
@@ -133,9 +133,9 @@ def calculate():
 
     results = []
     for product in loan_products.values():
-        if months < product["month_range"][0] or months > product["month_range"][1]:
-            continue
         if product["type"] != "reducing":
+            continue
+        if not (product["month_range"][0] <= months <= product["month_range"][1]):
             continue
 
         principal = estimate_principal_from_repayment(
@@ -168,7 +168,6 @@ def calculate():
             for row in res["table"]:
                 output.insert(tk.END, f"{row['Month']:<6} {row['Interest']:<10} {row['Principal']:<10} {row['Processing']:<10} {row['Insurance']:<10} {row['Payment']:<10} {row['Balance']:<10}\n")
 
-            # Create visual chart for this option
             months_list = [row["Month"] for row in res["table"]]
             payments = [row["Payment"] for row in res["table"]]
             fig, ax = plt.subplots(figsize=(6, 3))
