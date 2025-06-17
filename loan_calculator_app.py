@@ -5,7 +5,23 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 
 
-def estimate_principal_from_repayment(repayment, annual_rate, months, insurance_rate, processing_rate):
+def estimate_principal_from_repayment_flat(repayment, annual_rate, months, insurance_rate, processing_rate):
+    low = 100
+    high = 1_000_000
+    for _ in range(100):
+        mid = (low + high) / 2
+        interest_total = mid * (annual_rate / 100)
+        insurance_total = mid * (insurance_rate / 100) * (months / 12)
+        processing_total = mid * (processing_rate / 100)
+        monthly_total = (mid + interest_total + insurance_total + processing_total) / months
+        if monthly_total > repayment:
+            high = mid
+        else:
+            low = mid
+    return round((low + high) / 2)
+
+
+def estimate_principal_from_repayment_reducing(repayment, annual_rate, months, insurance_rate, processing_rate):
     low = 100
     high = 1_000_000
     for _ in range(100):
@@ -29,33 +45,55 @@ def estimate_principal_from_repayment(repayment, annual_rate, months, insurance_
     return round((low + high) / 2)
 
 
-def generate_amortization_table(principal, annual_rate, months, insurance_rate, processing_rate):
-    principal_payment = round(principal / months)
-    processing_fee_total = principal * (processing_rate / 100)
-    monthly_processing = math.ceil(processing_fee_total / months)
-    insurance_total = principal * (insurance_rate / 100) * (months / 12)
-    monthly_insurance = math.ceil(insurance_total / months)
-
-    rounded_proc_total = monthly_processing * months
-    rounded_ins_total = monthly_insurance * months
-    padding = (rounded_proc_total + rounded_ins_total) - (processing_fee_total + insurance_total)
-    adjusted_principal = principal - padding
-
+def generate_amortization_table(principal, annual_rate, months, insurance_rate, processing_rate, loan_type):
     table = []
-    balance = adjusted_principal
-    for i in range(1, months + 1):
-        interest = round(balance * (annual_rate / 100 / 12))
-        row = {
-            "Month": i,
-            "Interest": interest,
-            "Principal": principal_payment,
-            "Processing": monthly_processing,
-            "Insurance": monthly_insurance,
-            "Payment": principal_payment + interest + monthly_processing + monthly_insurance,
-            "Balance": max(0, round(balance - principal_payment))
-        }
-        table.append(row)
-        balance -= principal_payment
+    if loan_type == "flat":
+        interest_total = principal * (annual_rate / 100)
+        insurance_total = principal * (insurance_rate / 100) * (months / 12)
+        processing_fee_total = principal * (processing_rate / 100)
+        total_repayment = principal + interest_total + insurance_total + processing_fee_total
+        monthly_payment = round(total_repayment / months)
+        monthly_insurance = math.ceil(insurance_total / months)
+        monthly_processing = math.ceil(processing_fee_total / months)
+        principal_payment = round(principal / months)
+        balance = principal
+        for i in range(1, months + 1):
+            interest = round(interest_total / months)
+            row = {
+                "Month": i,
+                "Interest": interest,
+                "Principal": principal_payment,
+                "Processing": monthly_processing,
+                "Insurance": monthly_insurance,
+                "Payment": monthly_payment,
+                "Balance": max(0, round(balance - principal_payment))
+            }
+            table.append(row)
+            balance -= principal_payment
+    else:
+        principal_payment = round(principal / months)
+        processing_fee_total = principal * (processing_rate / 100)
+        monthly_processing = math.ceil(processing_fee_total / months)
+        insurance_total = principal * (insurance_rate / 100) * (months / 12)
+        monthly_insurance = math.ceil(insurance_total / months)
+        rounded_proc_total = monthly_processing * months
+        rounded_ins_total = monthly_insurance * months
+        padding = (rounded_proc_total + rounded_ins_total) - (processing_fee_total + insurance_total)
+        adjusted_principal = principal - padding
+        balance = adjusted_principal
+        for i in range(1, months + 1):
+            interest = round(balance * (annual_rate / 100 / 12))
+            row = {
+                "Month": i,
+                "Interest": interest,
+                "Principal": principal_payment,
+                "Processing": monthly_processing,
+                "Insurance": monthly_insurance,
+                "Payment": principal_payment + interest + monthly_processing + monthly_insurance,
+                "Balance": max(0, round(balance - principal_payment))
+            }
+            table.append(row)
+            balance -= principal_payment
     return table
 
 
@@ -133,22 +171,26 @@ def calculate():
 
     results = []
     for product in loan_products.values():
-        if product["type"] != "reducing":
-            continue
         if not (product["month_range"][0] <= months <= product["month_range"][1]):
             continue
 
-        principal = estimate_principal_from_repayment(
-            repayment, product["interest_rate"], months,
-            product["insurance_rate"], product["processing_rate"]
-        )
+        if product["type"] == "reducing":
+            principal = estimate_principal_from_repayment_reducing(
+                repayment, product["interest_rate"], months,
+                product["insurance_rate"], product["processing_rate"]
+            )
+        else:
+            principal = estimate_principal_from_repayment_flat(
+                repayment, product["interest_rate"], months,
+                product["insurance_rate"], product["processing_rate"]
+            )
 
         if not (product["amount_range"][0] <= principal <= product["amount_range"][1]):
             continue
 
         table = generate_amortization_table(
             principal, product["interest_rate"], months,
-            product["insurance_rate"], product["processing_rate"]
+            product["insurance_rate"], product["processing_rate"], product["type"]
         )
 
         total_cost = sum(row["Payment"] for row in table)
