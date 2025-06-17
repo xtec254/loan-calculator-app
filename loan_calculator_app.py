@@ -1,6 +1,8 @@
 import math
 import tkinter as tk
 from tkinter import ttk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
 
 
 def estimate_principal_from_repayment(repayment, annual_rate, months, insurance_rate, processing_rate):
@@ -110,9 +112,18 @@ output.grid(row=3, column=0, columnspan=2, pady=5)
 
 frame.columnconfigure(1, weight=1)
 
+chart_frame = ttk.Frame(root)
+chart_frame.pack(fill="both", expand=True)
+
+chart_canvas = None
+
 
 def calculate():
+    global chart_canvas
     output.delete(1.0, tk.END)
+    for widget in chart_frame.winfo_children():
+        widget.destroy()
+
     try:
         repayment = float(repayment_entry.get())
         months = int(months_entry.get())
@@ -156,6 +167,19 @@ def calculate():
             output.insert(tk.END, f"{'Month':<6} {'Interest':<10} {'Principal':<10} {'Processing':<10} {'Insurance':<10} {'Payment':<10} {'Balance':<10}\n")
             for row in res["table"]:
                 output.insert(tk.END, f"{row['Month']:<6} {row['Interest']:<10} {row['Principal']:<10} {row['Processing']:<10} {row['Insurance']:<10} {row['Payment']:<10} {row['Balance']:<10}\n")
+
+            # Create visual chart for this option
+            months = [row["Month"] for row in res["table"]]
+            payments = [row["Payment"] for row in res["table"]]
+            fig, ax = plt.subplots(figsize=(6, 3))
+            ax.plot(months, payments, marker='o')
+            ax.set_title(f"{res['name']} - Monthly Repayments")
+            ax.set_xlabel("Month")
+            ax.set_ylabel("KES")
+            ax.grid(True)
+            chart_canvas = FigureCanvasTkAgg(fig, master=chart_frame)
+            chart_canvas.draw()
+            chart_canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
     else:
         output.insert(tk.END, "⚠️ No matching product found.\n")
 
