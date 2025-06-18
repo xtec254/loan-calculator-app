@@ -3,7 +3,7 @@ import tkinter as tk
 
 # --- Constants ---
 INSURANCE_RATE = 3  # Annual
-PROCESSING_RATE = 3  # One-time, spread over loan period
+PROCESSING_RATE = 3  # One-time
 PROCESSING_MIN = 600
 TOLERANCE = 1  # Acceptable error in KES for reverse calculation
 
@@ -25,10 +25,13 @@ def generate_amortization(principal, annual_rate, months):
     monthly_principal = principal / months
     balance = principal
 
-    monthly_insurance = math.ceil((principal * (INSURANCE_RATE / 100)) / 12)
-    monthly_processing = math.ceil(
-        max(principal * (PROCESSING_RATE / 100), PROCESSING_MIN) / months
-    )
+    # Insurance: 3% annually, recurring for each year in the loan term
+    years = math.ceil(months / 12)
+    total_insurance = math.ceil(principal * (INSURANCE_RATE / 100) * years)
+    monthly_insurance = math.ceil(total_insurance / months)
+
+    total_processing = max(principal * (PROCESSING_RATE / 100), PROCESSING_MIN)
+    monthly_processing = math.ceil(total_processing / months)
 
     amortization = []
     total_payment = 0
